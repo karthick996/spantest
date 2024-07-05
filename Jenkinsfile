@@ -94,5 +94,12 @@ pipeline {
                 -Dsonar.login=squ_6b0fe09c64d9409e1f0921c9d7ef591ef2a0ea21 '''
             }
         }
+
+         stage('OWASP Dependency Check') {
+            steps {
+               dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DP'
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
     }
 }
