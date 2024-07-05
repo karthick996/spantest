@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SCANNER_HOME = tool 'sonar-scanner'
+        SCANNER_HOME = tool 'SonarQube scanner'
         SLACK_CHANNEL = "#git-leaks-alerts"
         GITLEAKS_REPORT_FILE = 'gitleaks-report.json'
     }
