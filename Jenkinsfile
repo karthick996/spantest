@@ -1,12 +1,30 @@
 pipeline {
     agent any
-   
-    environment{
-        SCANNER_HOME= tool 'sonar-scanner'
+
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+        SLACK_CHANNEL = "#git-leaks-alerts"
+        GITLEAKS_REPORT_FILE = 'gitleaks-report.json'
     }
 
-
     stages {
+        stage('Setup SonarQube and Trivy') {
+            steps {
+                script {
+                    // Run SonarQube in a Docker container
+                    sh "docker run -d --name sonarqube -p 9000:9000 sonarqube:lts"
+                    // Run Trivy in a Docker container
+                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy"
+                }
+            }
+        }
+
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/karthick996/spantest.git'
+            }
+        }
+
         stage('Run Gitleaks') {
             steps {
                 script {
@@ -77,16 +95,14 @@ pipeline {
                 }
             }
         }
-    stage('git-checkout') {
+
+        stage('Sonar Analysis') {
             steps {
-                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/karthick996/spantest.git'
+                sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=to-do-app \
+                -Dsonar.sources=. \
+                -Dsonar.host.url=http://35.91.88.89:9000 \
+                -Dsonar.login=squ_6b0fe09c64d9409e1f0921c9d7ef591ef2a0ea21 '''
             }
-        }	    
-    stage('Sonar Analysis') {
-            steps {
-                   sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.url=http://35.91.88.89:9000/ -Dsonar.login=squ_6b0fe09c64d9409e1f0921c9d7ef591ef2a0ea21 -Dsonar.projectName=to-do-app \
-                   -Dsonar.sources=. \
-                   -Dsonar.projectKey=to-do-app '''
-               }
-            }
-           
+        }
+    }
+}
