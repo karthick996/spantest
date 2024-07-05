@@ -95,8 +95,7 @@ pipeline {
         stage('OWASP Dependency Check') {
             steps {
                 script {
-                    def buildTools = tool 'DP'
-                    dependencyCheck additionalArguments: '--scan ./', odcInstallation: buildTools
+                    dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DP'
                     dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
                 }
             }
