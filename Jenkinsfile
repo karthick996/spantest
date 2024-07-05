@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SCANNER_HOME = tool 'sonar-scanner'
+        SCANNER_HOME = tool name: 'sonar-scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
         SLACK_CHANNEL = "#git-leaks-alerts"
         GITLEAKS_REPORT_FILE = 'gitleaks-report.json'
     }
@@ -16,11 +16,8 @@ pipeline {
                         // Run Gitleaks and capture the output
                         def status = sh(script: "gitleaks detect --source . --report-format json --report-path ${GITLEAKS_REPORT_FILE} > gitleaks-output.txt 2>&1", returnStatus: true)
 
-                        // Read the Gitleaks output file
-                        def outputFileContent = readFile('gitleaks-output.txt')
-
                         // Read the JSON report file using readJSON step
-                        def parsedReport = readJSON file: GITLEAKS_REPORT_FILE
+                        def parsedReport = readJSON file: "${GITLEAKS_REPORT_FILE}"
 
                         // Extract detailed findings from the report
                         def detailedFindings = parsedReport.collect { finding ->
@@ -42,7 +39,7 @@ pipeline {
                         // Format the output to be user-friendly
                         def formattedOutput = """
                         Gitleaks Scan Report:
-                        ${outputFileContent}
+                        ${parsedReport}
 
                         Detailed Findings:
                         ${detailedFindings}
@@ -78,22 +75,31 @@ pipeline {
                 }
             }
         }
+        
         stage('Git Checkout') {
             steps {
                 git branch: 'main', changelog: false, poll: false, url: 'https://github.com/karthick996/spantest.git'
             }
         }
 
-        
-
         stage('Sonar Analysis') {
             steps {
-                sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=to-do-app \
-                -Dsonar.sources=. \
-                -Dsonar.host.url=http://54.190.121.126:9000 \
-                -Dsonar.login=squ_ec68f17f66431f531cc10c2fbd2c676164aca859 '''
+                sh """${SCANNER_HOME}/bin/sonar-scanner \
+                    -Dsonar.projectKey=to-do-app \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=http://54.190.121.126:9000 \
+                    -Dsonar.login=squ_ec68f17f66431f531cc10c2fbd2c676164aca859"""
             }
         }
 
+        stage('OWASP Dependency Check') {
+            steps {
+                script {
+                    def buildTools = tool 'DP'
+                    dependencyCheck additionalArguments: '--scan ./', odcInstallation: buildTools
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                }
+            }
+        }
     }
 }
