@@ -8,23 +8,6 @@ pipeline {
     }
 
     stages {
-        stage('Setup SonarQube and Trivy') {
-            steps {
-                script {
-                    // Run SonarQube in a Docker container
-                    sh "docker run -d --name sonarqube -p 9000:9000 sonarqube:lts"
-                    // Run Trivy in a Docker container
-                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy"
-                }
-            }
-        }
-
-        stage('Git Checkout') {
-            steps {
-                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/karthick996/spantest.git'
-            }
-        }
-
         stage('Run Gitleaks') {
             steps {
                 script {
@@ -95,6 +78,13 @@ pipeline {
                 }
             }
         }
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/karthick996/spantest.git'
+            }
+        }
+
+        
 
         stage('Sonar Analysis') {
             steps {
