@@ -113,7 +113,7 @@ pipeline {
         }
         stage('trivy') {
             steps {
-               sh " trivy karthick996/todoapp:latest"
+               sh " trivy image karthick996/todoapp:latest"
             }
         }
     }
