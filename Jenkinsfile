@@ -88,7 +88,7 @@ pipeline {
                     -Dsonar.projectKey=to-do-app \
                     -Dsonar.sources=. \
                     -Dsonar.host.url=http://18.237.125.100:9000 \
-                    -Dsonar.login=squ_013bde9f39ead6b18aa50c50a64100e58b887756"""
+                    -Dsonar.login=squ_33e42a30bbce8e136861701ac4ce985839f4e460"""
             }
         }
         stage('Docker Build') {
