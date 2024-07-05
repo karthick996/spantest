@@ -87,17 +87,33 @@ pipeline {
                 sh """${SCANNER_HOME}/bin/sonar-scanner \
                     -Dsonar.projectKey=to-do-app \
                     -Dsonar.sources=. \
-                    -Dsonar.host.url=http://54.190.121.126:9000 \
-                    -Dsonar.login=squ_ec68f17f66431f531cc10c2fbd2c676164aca859"""
+                    -Dsonar.host.url=http://18.237.125.100:9000 \
+                    -Dsonar.login=squ_013bde9f39ead6b18aa50c50a64100e58b887756"""
+            }
+        }
+        stage('Docker Build') {
+            steps {
+               script{
+                   withDockerRegistry(credentialsId: 'docker-creds') {
+                    sh "docker build -t  todoapp:latest -f docker/Dockerfile . "
+                    sh "docker tag todoapp:latest karthick996/todoapp:latest "
+                 }
+               }
             }
         }
 
-        stage('OWASP Dependency Check') {
+        stage('Docker Push') {
             steps {
-                script {
-                    dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DP'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                }
+               script{
+                   withDockerRegistry(credentialsId: 'docker-creds') {
+                    sh "docker push  karthick996/todoapp:latest "
+                 }
+               }
+            }
+        }
+        stage('trivy') {
+            steps {
+               sh " trivy karthick996/todoapp:latest"
             }
         }
     }
