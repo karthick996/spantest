@@ -90,8 +90,8 @@ pipeline {
             steps {
                 sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=to-do-app \
                 -Dsonar.sources=. \
-                -Dsonar.host.url=http://35.91.88.89:9000 \
-                -Dsonar.login=squ_6b0fe09c64d9409e1f0921c9d7ef591ef2a0ea21 '''
+                -Dsonar.host.url=http://54.214.95.178:9000 \
+                -Dsonar.login=squ_5e3a25911296fe842ef5141ab467e09c0eb46562 '''
             }
         }
 
