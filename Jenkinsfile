@@ -5,7 +5,6 @@ pipeline {
         SCANNER_HOME = tool name: 'sonar-scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
         SLACK_CHANNEL = "#git-leaks-alerts"
         GITLEAKS_REPORT_FILE = 'gitleaks-report.json'
-        buildOutput = ""
     }
 
     stages {
@@ -78,9 +77,8 @@ pipeline {
                         // Send Slack notification with Gitleaks output
                         slackSend(channel: env.SLACK_CHANNEL, color: '#FFFF00', message: formattedOutput)
 
-                        // Append to build output
-                        buildOutput += "Gitleaks Stage Output:\n${formattedOutput}\n\n"
-
+                        // Record the output for this stage
+                        currentBuild.description = formattedOutput
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error running Gitleaks or displaying input: ' + e.toString()
@@ -98,7 +96,7 @@ pipeline {
                         // Replace this with the link to SonarQube analysis result
                         def sonarOutput = "ANALYSIS SUCCESSFUL, you can find the results at: [SonarQube Dashboard](http://18.237.125.100:9000/dashboard?id=to-do-app)"
                         echo sonarOutput
-                        buildOutput += "Sonar Analysis Stage Output:\n${sonarOutput}\n\n"
+                        currentBuild.description = sonarOutput
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error running Sonar analysis: ' + e.toString()
@@ -116,7 +114,7 @@ pipeline {
                         // Add your Docker build steps here
                         def dockerBuildOutput = "Docker build completed successfully."
                         echo dockerBuildOutput
-                        buildOutput += "Docker Build Stage Output:\n${dockerBuildOutput}\n\n"
+                        currentBuild.description = dockerBuildOutput
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error building Docker image: ' + e.toString()
@@ -134,7 +132,7 @@ pipeline {
                         // Add your Docker push steps here
                         def dockerPushOutput = "Docker push completed successfully."
                         echo dockerPushOutput
-                        buildOutput += "Docker Push Stage Output:\n${dockerPushOutput}\n\n"
+                        currentBuild.description = dockerPushOutput
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error pushing Docker image: ' + e.toString()
@@ -152,7 +150,7 @@ pipeline {
                         // Add your Trivy scan steps here
                         def trivyOutput = "Trivy scan completed successfully."
                         echo trivyOutput
-                        buildOutput += "Trivy Scan Stage Output:\n${trivyOutput}\n\n"
+                        currentBuild.description = trivyOutput
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error running Trivy scan: ' + e.toString()
@@ -166,8 +164,7 @@ pipeline {
     post {
         always {
             script {
-                echo "Build summary:\n${buildOutput}"
-                currentBuild.description = buildOutput
+                echo "Build summary:\n${currentBuild.description}"
             }
         }
     }
