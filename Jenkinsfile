@@ -39,7 +39,6 @@ pipeline {
                         // Format the output to be user-friendly
                         def formattedOutput = """
                         Gitleaks Scan Report:
-                        ${parsedReport}
 
                         Detailed Findings:
                         ${detailedFindings}
