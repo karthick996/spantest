@@ -21,14 +21,14 @@ pipeline {
         stage('Run Gitleaks') {
             steps {
                 script {
-                    def proceed = false
+                    def gitleaksOutput = ''
                     try {
                         echo "Running Gitleaks scan..."
                         // Run Gitleaks and capture the output
                         def status = sh(script: "gitleaks detect --source . --report-format json --report-path ${GITLEAKS_REPORT_FILE} > gitleaks-output.txt 2>&1", returnStatus: true)
                         
-                        // Log the Gitleaks output for debugging
-                        def gitleaksOutput = readFile('gitleaks-output.txt')
+                        // Capture the Gitleaks output for the dashboard
+                        gitleaksOutput = readFile('gitleaks-output.txt')
                         echo "Gitleaks output:\n${gitleaksOutput}"
 
                         // Check if Gitleaks ran successfully
@@ -95,17 +95,15 @@ pipeline {
 
                         // Set proceed variable based on user input
                         if (userInput['PROCEED'] == 'Yes') {
-                            proceed = true
+                            currentBuild.description += "\n\nGitleaks Output:\n${gitleaksOutput}"
+                        } else {
+                            currentBuild.result = 'ABORTED'
+                            error('Pipeline aborted by user choice.')
                         }
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error running Gitleaks or displaying input: ' + e.toString()
-                    }
-
-                    // Check the proceed variable before moving to the next stage
-                    if (!proceed) {
-                        currentBuild.result = 'ABORTED'
-                        error('Pipeline aborted by user choice.')
+                        error('Gitleaks scan encountered an error.')
                     }
                 }
             }
@@ -114,13 +112,21 @@ pipeline {
         stage('Sonar Analysis') {
             steps {
                 script {
-                    echo "Starting Sonar analysis..."
-                    sh """${SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=to-do-app \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=http://18.237.125.100:9000 \
-                        -Dsonar.login=squ_33e42a30bbce8e136861701ac4ce985839f4e460"""
-                    echo "Sonar analysis completed."
+                    def sonarOutput = ''
+                    try {
+                        echo "Starting Sonar analysis..."
+                        sonarOutput = sh(script: """${SCANNER_HOME}/bin/sonar-scanner \
+                            -Dsonar.projectKey=to-do-app \
+                            -Dsonar.sources=. \
+                            -Dsonar.host.url=http://18.237.125.100:9000 \
+                            -Dsonar.login=squ_33e42a30bbce8e136861701ac4ce985839f4e460""", returnStdout: true).trim()
+                        echo "Sonar analysis completed:\n${sonarOutput}"
+                        currentBuild.description += "\n\nSonar Analysis Output:\n${sonarOutput}"
+                    } catch (Exception e) {
+                        currentBuild.result = 'UNSTABLE'
+                        echo 'Error running Sonar analysis: ' + e.toString()
+                        error('Sonar analysis encountered an error.')
+                    }
                 }
             }
         }
@@ -128,12 +134,20 @@ pipeline {
         stage('Docker Build') {
             steps {
                 script {
-                    echo "Building Docker image..."
-                    withDockerRegistry(credentialsId: 'docker-creds') {
-                        sh "docker build -t todoapp:latest -f backend/Dockerfile ."
-                        sh "docker tag todoapp:latest karthick996/todoapp:latest"
+                    def dockerBuildOutput = ''
+                    try {
+                        echo "Building Docker image..."
+                        withDockerRegistry(credentialsId: 'docker-creds') {
+                            dockerBuildOutput = sh(script: "docker build -t todoapp:latest -f backend/Dockerfile .", returnStdout: true).trim()
+                            sh "docker tag todoapp:latest karthick996/todoapp:latest"
+                        }
+                        echo "Docker build completed:\n${dockerBuildOutput}"
+                        currentBuild.description += "\n\nDocker Build Output:\n${dockerBuildOutput}"
+                    } catch (Exception e) {
+                        currentBuild.result = 'UNSTABLE'
+                        echo 'Error building Docker image: ' + e.toString()
+                        error('Docker build encountered an error.')
                     }
-                    echo "Docker build and tag completed."
                 }
             }
         }
@@ -141,11 +155,19 @@ pipeline {
         stage('Docker Push') {
             steps {
                 script {
-                    echo "Pushing Docker image to registry..."
-                    withDockerRegistry(credentialsId: 'docker-creds') {
-                        sh "docker push karthick996/todoapp:latest"
+                    def dockerPushOutput = ''
+                    try {
+                        echo "Pushing Docker image to registry..."
+                        withDockerRegistry(credentialsId: 'docker-creds') {
+                            dockerPushOutput = sh(script: "docker push karthick996/todoapp:latest", returnStdout: true).trim()
+                        }
+                        echo "Docker push completed:\n${dockerPushOutput}"
+                        currentBuild.description += "\n\nDocker Push Output:\n${dockerPushOutput}"
+                    } catch (Exception e) {
+                        currentBuild.result = 'UNSTABLE'
+                        echo 'Error pushing Docker image: ' + e.toString()
+                        error('Docker push encountered an error.')
                     }
-                    echo "Docker push completed."
                 }
             }
         }
@@ -153,10 +175,26 @@ pipeline {
         stage('Trivy Scan') {
             steps {
                 script {
-                    echo "Running Trivy scan..."
-                    sh "trivy image karthick996/todoapp:latest"
-                    echo "Trivy scan completed."
+                    def trivyOutput = ''
+                    try {
+                        echo "Running Trivy scan..."
+                        trivyOutput = sh(script: "trivy image karthick996/todoapp:latest", returnStdout: true).trim()
+                        echo "Trivy scan completed:\n${trivyOutput}"
+                        currentBuild.description += "\n\nTrivy Scan Output:\n${trivyOutput}"
+                    } catch (Exception e) {
+                        currentBuild.result = 'UNSTABLE'
+                        echo 'Error running Trivy scan: ' + e.toString()
+                        error('Trivy scan encountered an error.')
+                    }
                 }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                echo "Build summary:\n${currentBuild.description}"
             }
         }
     }
