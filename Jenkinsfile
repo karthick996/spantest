@@ -48,6 +48,7 @@ pipeline {
                         // Check if the parsed report contains data
                         if (parsedReport.isEmpty()) {
                             echo "No findings in the Gitleaks report."
+                            error('No findings in the Gitleaks report.')
                         }
 
                         // Extract detailed findings from the report
