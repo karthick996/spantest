@@ -10,7 +10,11 @@ pipeline {
     stages {
         stage('Git Checkout') {
             steps {
-                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/karthick996/spantest.git'
+                script {
+                    echo "Checking out the git repository..."
+                    git branch: 'main', changelog: false, poll: false, url: 'https://github.com/karthick996/spantest.git'
+                    echo "Git checkout completed."
+                }
             }
         }
 
@@ -19,6 +23,7 @@ pipeline {
                 script {
                     def proceed = false
                     try {
+                        echo "Running Gitleaks scan..."
                         // Run Gitleaks and capture the output
                         def status = sh(script: "gitleaks detect --source . --report-format json --report-path ${GITLEAKS_REPORT_FILE} > gitleaks-output.txt 2>&1", returnStatus: true)
                         
@@ -70,6 +75,9 @@ pipeline {
                         Detailed Findings:
                         ${detailedFindings ?: "No leaks found."}
                         """
+                        
+                        // Log the formatted output
+                        echo formattedOutput
 
                         // Send Slack notification with Gitleaks output
                         slackSend(channel: env.SLACK_CHANNEL, color: '#FFFF00', message: formattedOutput)
@@ -104,38 +112,50 @@ pipeline {
 
         stage('Sonar Analysis') {
             steps {
-                sh """${SCANNER_HOME}/bin/sonar-scanner \
-                    -Dsonar.projectKey=to-do-app \
-                    -Dsonar.sources=. \
-                    -Dsonar.host.url=http://18.237.125.100:9000 \
-                    -Dsonar.login=squ_33e42a30bbce8e136861701ac4ce985839f4e460"""
+                script {
+                    echo "Starting Sonar analysis..."
+                    sh """${SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=to-do-app \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=http://18.237.125.100:9000 \
+                        -Dsonar.login=squ_33e42a30bbce8e136861701ac4ce985839f4e460"""
+                    echo "Sonar analysis completed."
+                }
             }
         }
 
         stage('Docker Build') {
             steps {
-               script{
-                   withDockerRegistry(credentialsId: 'docker-creds') {
-                    sh "docker build -t todoapp:latest -f backend/Dockerfile . "
-                    sh "docker tag todoapp:latest karthick996/todoapp:latest "
-                 }
-               }
+                script {
+                    echo "Building Docker image..."
+                    withDockerRegistry(credentialsId: 'docker-creds') {
+                        sh "docker build -t todoapp:latest -f backend/Dockerfile ."
+                        sh "docker tag todoapp:latest karthick996/todoapp:latest"
+                    }
+                    echo "Docker build and tag completed."
+                }
             }
         }
 
         stage('Docker Push') {
             steps {
-               script{
-                   withDockerRegistry(credentialsId: 'docker-creds') {
-                    sh "docker push karthick996/todoapp:latest "
-                 }
-               }
+                script {
+                    echo "Pushing Docker image to registry..."
+                    withDockerRegistry(credentialsId: 'docker-creds') {
+                        sh "docker push karthick996/todoapp:latest"
+                    }
+                    echo "Docker push completed."
+                }
             }
         }
 
-        stage('trivy') {
+        stage('Trivy Scan') {
             steps {
-               sh "trivy image karthick996/todoapp:latest"
+                script {
+                    echo "Running Trivy scan..."
+                    sh "trivy image karthick996/todoapp:latest"
+                    echo "Trivy scan completed."
+                }
             }
         }
     }
