@@ -45,12 +45,6 @@ pipeline {
                             echo "Gitleaks report file not found: ${GITLEAKS_REPORT_FILE}"
                         }
 
-                        // Check if the parsed report contains data
-                        if (parsedReport.isEmpty()) {
-                            echo "No findings in the Gitleaks report."
-                            error('No findings in the Gitleaks report.')
-                        }
-
                         // Extract detailed findings from the report
                         def detailedFindings = parsedReport.collect { finding ->
                             """
@@ -83,23 +77,27 @@ pipeline {
                         // Send Slack notification with Gitleaks output
                         slackSend(channel: env.SLACK_CHANNEL, color: '#FFFF00', message: formattedOutput)
 
-                        // Prompt user for confirmation to proceed with Gitleaks findings
-                        def userInput = input(
-                            id: 'proceedToNextStage',
-                            message: 'Gitleaks scan completed. Review the findings and decide whether to proceed.',
-                            parameters: [
-                                [$class: 'TextParameterDefinition', defaultValue: formattedOutput, description: 'Gitleaks findings', name: 'GITLEAKS_OUTPUT'],
-                                [$class: 'ChoiceParameterDefinition', choices: ['Yes', 'No'], description: 'Proceed to next stage?', name: 'PROCEED']
-                            ]
-                        )
-
-                        // Set proceed variable based on user input
-                        if (userInput['PROCEED'] == 'Yes') {
-                            currentBuild.description += "\n\nGitleaks Output:\n${gitleaksOutput}"
+                        // Proceed if no findings or if user confirms
+                        if (parsedReport.isEmpty()) {
+                            echo "No findings in the Gitleaks report."
                         } else {
-                            currentBuild.result = 'ABORTED'
-                            error('Pipeline aborted by user choice.')
+                            // Prompt user for confirmation to proceed with Gitleaks findings
+                            def userInput = input(
+                                id: 'proceedToNextStage',
+                                message: 'Gitleaks scan completed. Review the findings and decide whether to proceed.',
+                                parameters: [
+                                    [$class: 'TextParameterDefinition', defaultValue: formattedOutput, description: 'Gitleaks findings', name: 'GITLEAKS_OUTPUT'],
+                                    [$class: 'ChoiceParameterDefinition', choices: ['Yes', 'No'], description: 'Proceed to next stage?', name: 'PROCEED']
+                                ]
+                            )
+
+                            // Set proceed variable based on user input
+                            if (userInput['PROCEED'] != 'Yes') {
+                                currentBuild.result = 'ABORTED'
+                                error('Pipeline aborted by user choice.')
+                            }
                         }
+                        currentBuild.description += "\n\nGitleaks Output:\n${gitleaksOutput}"
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error running Gitleaks or displaying input: ' + e.toString()
