@@ -30,11 +30,15 @@ pipeline {
                             error('Gitleaks scan failed. See console output for details.')
                         }
 
-                        // Read the JSON report file using readJSON step
+                        // Read and debug the JSON report file
                         def parsedReport = readJSON file: "${GITLEAKS_REPORT_FILE}"
-
-                        // Debug: Print parsedReport to verify its content
                         echo "Parsed Gitleaks Report: ${parsedReport}"
+
+                        // Check if the parsed report contains data
+                        if (parsedReport.isEmpty()) {
+                            echo "No findings in the Gitleaks report."
+                            error('No findings in the Gitleaks report.')
+                        }
 
                         // Extract detailed findings from the report
                         def detailedFindings = parsedReport.collect { finding ->
