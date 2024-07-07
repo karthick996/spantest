@@ -8,6 +8,12 @@ pipeline {
     }
 
     stages {
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/karthick996/spantest.git'
+            }
+        }
+
         stage('Run Gitleaks') {
             steps {
                 script {
@@ -15,9 +21,20 @@ pipeline {
                     try {
                         // Run Gitleaks and capture the output
                         def status = sh(script: "gitleaks detect --source . --report-format json --report-path ${GITLEAKS_REPORT_FILE} > gitleaks-output.txt 2>&1", returnStatus: true)
+                        
+                        // Check if Gitleaks ran successfully
+                        if (status != 0) {
+                            echo "Gitleaks scan failed with status ${status}"
+                            def gitleaksOutput = readFile('gitleaks-output.txt')
+                            echo "Gitleaks output: ${gitleaksOutput}"
+                            error('Gitleaks scan failed. See console output for details.')
+                        }
 
                         // Read the JSON report file using readJSON step
                         def parsedReport = readJSON file: "${GITLEAKS_REPORT_FILE}"
+
+                        // Debug: Print parsedReport to verify its content
+                        echo "Parsed Gitleaks Report: ${parsedReport}"
 
                         // Extract detailed findings from the report
                         def detailedFindings = parsedReport.collect { finding ->
@@ -35,6 +52,9 @@ pipeline {
                             **Fingerprint:** ${finding.fingerprint}
                             """
                         }.join('\n\n')
+
+                        // Debug: Print detailedFindings to verify its content
+                        echo "Detailed Findings: ${detailedFindings}"
 
                         // Format the output to be user-friendly
                         def formattedOutput = """
@@ -63,7 +83,7 @@ pipeline {
                         }
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
-                        echo 'Error running Gitleaks or displaying input.'
+                        echo 'Error running Gitleaks or displaying input: ' + e.toString()
                     }
 
                     // Check the proceed variable before moving to the next stage
@@ -72,12 +92,6 @@ pipeline {
                         error('Pipeline aborted by user choice.')
                     }
                 }
-            }
-        }
-        
-        stage('Git Checkout') {
-            steps {
-                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/karthick996/spantest.git'
             }
         }
 
@@ -90,11 +104,12 @@ pipeline {
                     -Dsonar.login=squ_33e42a30bbce8e136861701ac4ce985839f4e460"""
             }
         }
+
         stage('Docker Build') {
             steps {
                script{
                    withDockerRegistry(credentialsId: 'docker-creds') {
-                    sh "docker build -t  todoapp:latest -f backend/Dockerfile . "
+                    sh "docker build -t todoapp:latest -f backend/Dockerfile . "
                     sh "docker tag todoapp:latest karthick996/todoapp:latest "
                  }
                }
@@ -105,14 +120,15 @@ pipeline {
             steps {
                script{
                    withDockerRegistry(credentialsId: 'docker-creds') {
-                    sh "docker push  karthick996/todoapp:latest "
+                    sh "docker push karthick996/todoapp:latest "
                  }
                }
             }
         }
+
         stage('trivy') {
             steps {
-               sh " trivy image karthick996/todoapp:latest"
+               sh "trivy image karthick996/todoapp:latest"
             }
         }
     }
