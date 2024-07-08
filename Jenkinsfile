@@ -88,6 +88,21 @@ pipeline {
             }
         }
 
+        stage('User Confirmation') {
+            steps {
+                script {
+                    def userInput = input(
+                        message: 'Proceed to the next stage?',
+                        parameters: [choice(name: 'Proceed', choices: ['Yes', 'No'], description: 'Choose whether to proceed to the next stage or not')]
+                    )
+
+                    if (userInput == 'No') {
+                        error('Pipeline stopped by user')
+                    }
+                }
+            }
+        }
+
         stage('Sonar Analysis') {
             steps {
                 script {
@@ -105,10 +120,11 @@ pipeline {
                 }
             }
         }
+        
         stage('OWASP Dependency Check') {
             steps {
-               dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DP'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DP'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
 
