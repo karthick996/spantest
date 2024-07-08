@@ -117,37 +117,22 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                script {
-                    try {
-                        echo "Building Docker image..."
-                        // Add your Docker build steps here
-                        def dockerBuildOutput = "Docker build completed successfully."
-                        echo dockerBuildOutput
-                        currentBuild.description += "\n" + dockerBuildOutput
-                    } catch (Exception e) {
-                        currentBuild.result = 'UNSTABLE'
-                        echo 'Error building Docker image: ' + e.toString()
-                        error('Docker build encountered an error.')
-                    }
-                }
+               script{
+                   withDockerRegistry(credentialsId: 'docker-creds') {
+                    sh "docker build -t todoapp:latest -f backend/Dockerfile . "
+                    sh "docker tag todoapp:latest karthick996/todoapp:latest "
+                 }
+               }
             }
         }
 
         stage('Docker Push') {
             steps {
-                script {
-                    try {
-                        echo "Pushing Docker image to registry..."
-                        // Add your Docker push steps here
-                        def dockerPushOutput = "Docker push completed successfully."
-                        echo dockerPushOutput
-                        currentBuild.description += "\n" + dockerPushOutput
-                    } catch (Exception e) {
-                        currentBuild.result = 'UNSTABLE'
-                        echo 'Error pushing Docker image: ' + e.toString()
-                        error('Docker push encountered an error.')
-                    }
-                }
+               script{
+                   withDockerRegistry(credentialsId: 'docker-creds') {
+                    sh "docker push karthick996/todoapp:latest "
+                 }
+               }
             }
         }
 
