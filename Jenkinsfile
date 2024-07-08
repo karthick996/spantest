@@ -151,21 +151,9 @@ pipeline {
             }
         }
 
-        stage('Trivy Scan') {
+        stage('trivy') {
             steps {
-                script {
-                    try {
-                        echo "Running Trivy scan..."
-                        // Add your Trivy scan steps here
-                        def trivyOutput = "Trivy scan completed successfully."
-                        echo trivyOutput
-                        currentBuild.description += "\n" + trivyOutput
-                    } catch (Exception e) {
-                        currentBuild.result = 'UNSTABLE'
-                        echo 'Error running Trivy scan: ' + e.toString()
-                        error('Trivy scan encountered an error.')
-                    }
-                }
+               sh "trivy image karthick996/todoapp:latest"
             }
         }
     }
