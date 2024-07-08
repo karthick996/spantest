@@ -79,25 +79,20 @@ pipeline {
 
                         // Record the output for this stage
                         currentBuild.description = formattedOutput
+
+                        // Prompt for user confirmation to proceed
+                        def userInput = input(
+                            message: "Proceed to the next stage? Here is the Gitleaks output:\n\n${formattedOutput}",
+                            parameters: [choice(name: 'Proceed', choices: ['Yes', 'No'], description: 'Choose whether to proceed to the next stage or not')]
+                        )
+
+                        if (userInput == 'No') {
+                            error('Pipeline stopped by user')
+                        }
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error running Gitleaks or displaying input: ' + e.toString()
                         error('Gitleaks scan encountered an error.')
-                    }
-                }
-            }
-        }
-
-        stage('User Confirmation') {
-            steps {
-                script {
-                    def userInput = input(
-                        message: 'Proceed to the next stage?',
-                        parameters: [choice(name: 'Proceed', choices: ['Yes', 'No'], description: 'Choose whether to proceed to the next stage or not')]
-                    )
-
-                    if (userInput == 'No') {
-                        error('Pipeline stopped by user')
                     }
                 }
             }
@@ -111,7 +106,7 @@ pipeline {
                         // Replace this with the link to SonarQube analysis result
                         def sonarOutput = "ANALYSIS SUCCESSFUL, you can find the results at: [SonarQube Dashboard](http://18.237.125.100:9000/dashboard?id=to-do-app)"
                         echo sonarOutput
-                        currentBuild.description = sonarOutput
+                        currentBuild.description += "\n" + sonarOutput
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error running Sonar analysis: ' + e.toString()
@@ -136,7 +131,7 @@ pipeline {
                         // Add your Docker build steps here
                         def dockerBuildOutput = "Docker build completed successfully."
                         echo dockerBuildOutput
-                        currentBuild.description = dockerBuildOutput
+                        currentBuild.description += "\n" + dockerBuildOutput
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error building Docker image: ' + e.toString()
@@ -154,7 +149,7 @@ pipeline {
                         // Add your Docker push steps here
                         def dockerPushOutput = "Docker push completed successfully."
                         echo dockerPushOutput
-                        currentBuild.description = dockerPushOutput
+                        currentBuild.description += "\n" + dockerPushOutput
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error pushing Docker image: ' + e.toString()
@@ -172,7 +167,7 @@ pipeline {
                         // Add your Trivy scan steps here
                         def trivyOutput = "Trivy scan completed successfully."
                         echo trivyOutput
-                        currentBuild.description = trivyOutput
+                        currentBuild.description += "\n" + trivyOutput
                     } catch (Exception e) {
                         currentBuild.result = 'UNSTABLE'
                         echo 'Error running Trivy scan: ' + e.toString()
