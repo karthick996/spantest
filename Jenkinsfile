@@ -100,19 +100,11 @@ pipeline {
 
         stage('Sonar Analysis') {
             steps {
-                script {
-                    try {
-                        echo "Starting Sonar analysis..."
-                        // Replace this with the link to SonarQube analysis result
-                        def sonarOutput = "ANALYSIS SUCCESSFUL, you can find the results at: [SonarQube Dashboard](http://34.221.116.49:9000//dashboard?id=to-do-app)"
-                        echo sonarOutput
-                        currentBuild.description += "\n" + sonarOutput
-                    } catch (Exception e) {
-                        currentBuild.result = 'UNSTABLE'
-                        echo 'Error running Sonar analysis: ' + e.toString()
-                        error('Sonar analysis encountered an error.')
-                    }
-                }
+                sh """${SCANNER_HOME}/bin/sonar-scanner \
+                    -Dsonar.projectKey=to-do-app \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=http://34.221.116.49:9000/ \
+                    -Dsonar.login=squ_7deb0b200f4b3ed042e6ba1d9df5f8f8c9d38b6e"""
             }
         }
         
