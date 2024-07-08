@@ -104,7 +104,7 @@ pipeline {
                     try {
                         echo "Starting Sonar analysis..."
                         // Replace this with the link to SonarQube analysis result
-                        def sonarOutput = "ANALYSIS SUCCESSFUL, you can find the results at: [SonarQube Dashboard](http://18.237.125.100:9000/dashboard?id=to-do-app)"
+                        def sonarOutput = "ANALYSIS SUCCESSFUL, you can find the results at: [SonarQube Dashboard](http://34.221.116.49:9000//dashboard?id=to-do-app)"
                         echo sonarOutput
                         currentBuild.description += "\n" + sonarOutput
                     } catch (Exception e) {
