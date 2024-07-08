@@ -103,8 +103,8 @@ pipeline {
                 sh """${SCANNER_HOME}/bin/sonar-scanner \
                     -Dsonar.projectKey=to-do-app \
                     -Dsonar.sources=. \
-                    -Dsonar.host.url=http://34.221.116.49:9000/ \
-                    -Dsonar.login=squ_7deb0b200f4b3ed042e6ba1d9df5f8f8c9d38b6e"""
+                    -Dsonar.host.url=http://54.200.102.39:9000/ \
+                    -Dsonar.login=squ_8b555ee4d028627d8434aa296467cca5c27b50ad"""
             }
         }
         
