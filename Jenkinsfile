@@ -157,12 +157,4 @@ pipeline {
             }
         }
     }
-
-    post {
-        always {
-            script {
-                echo "Build summary:\n${currentBuild.description}"
-            }
-        }
-    }
 }
